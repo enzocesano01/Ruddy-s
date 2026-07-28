@@ -36,3 +36,5 @@
 .cart-item-image.transparent{background:radial-gradient(circle,rgba(255,189,36,.25),var(--navy));object-fit:contain;padding:2px}
 .custom-badge{background:rgba(6,31,79,.07);border-radius:20px;color:var(--navy);display:table;font-size:7px;font-weight:900;letter-spacing:.05em;margin:0 0 9px;padding:5px 7px;text-transform:uppercase}
 @media(max-width:760px){.burger-canvas{max-height:400px}.cart-items article{grid-template-columns:52px 1fr 24px}.cart-item-image{height:52px;width:52px}}
+
+.builder-progress{grid-template-columns:repeat(4,1fr)}
