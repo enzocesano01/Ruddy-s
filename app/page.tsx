@@ -1,79 +1,236 @@
-﻿"use client";
+"use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-type CategoryId = "pan" | "carne" | "queso" | "extras" | "salsas";
-type Ingredient = { id: string; name: string; detail: string; price: number; category: CategoryId; visual: string };
-type CartItem = { id: number; name: string; detail: string; total: number };
+type CategoryId = "pan" | "carne" | "queso" | "extras";
+type Ingredient = {
+  id: string;
+  name: string;
+  detail: string;
+  price: number;
+  category: CategoryId;
+  image?: string;
+};
+type CartItem = {
+  id: number;
+  name: string;
+  detail: string;
+  total: number;
+  image?: string;
+  custom?: boolean;
+};
+type Selection = Record<CategoryId, string[]>;
+type Crop = [number, number, number, number];
 
-const money = (value: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
+type LayerAsset = { src: string; crop: Crop };
+
+const money = (value: number) =>
+  new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    maximumFractionDigits: 0,
+  }).format(value);
+
 const categories: { id: CategoryId; label: string; eyebrow: string }[] = [
   { id: "pan", label: "Pan", eyebrow: "La base" },
   { id: "carne", label: "Carne", eyebrow: "El corazón" },
-  { id: "queso", label: "Quesos", eyebrow: "El abrazo" },
-  { id: "extras", label: "Extras", eyebrow: "El crunch" },
-  { id: "salsas", label: "Salsas", eyebrow: "El final" },
+  { id: "queso", label: "Queso", eyebrow: "El abrazo" },
+  { id: "extras", label: "Extras", eyebrow: "El toque final" },
 ];
+
 const ingredients: Ingredient[] = [
-  { id: "brioche", name: "Brioche", detail: "Mantecoso y tostado", price: 1100, category: "pan", visual: "bun" },
-  { id: "papa", name: "Pan de papa", detail: "Suave y dorado", price: 1300, category: "pan", visual: "potato" },
-  { id: "simple", name: "Simple", detail: "Smash 120 g", price: 2800, category: "carne", visual: "patty" },
-  { id: "doble", name: "Doble", detail: "2 smash · 240 g", price: 5000, category: "carne", visual: "double" },
-  { id: "triple", name: "Triple", detail: "3 smash · 360 g", price: 7000, category: "carne", visual: "triple" },
-  { id: "cheddar", name: "Cheddar", detail: "Doble feta", price: 1100, category: "queso", visual: "cheddar" },
-  { id: "provoleta", name: "Provoleta", detail: "Dorada a la plancha", price: 1600, category: "queso", visual: "provoleta" },
-  { id: "sin-queso", name: "Sin queso", detail: "Sólo carne", price: 0, category: "queso", visual: "none" },
-  { id: "bacon", name: "Panceta", detail: "Crocante y ahumada", price: 1500, category: "extras", visual: "bacon" },
-  { id: "onion", name: "Aros de cebolla", detail: "Rebozado extra crisp", price: 1200, category: "extras", visual: "onion" },
-  { id: "cebolla", name: "Cebolla caramelizada", detail: "Lenta y dulce", price: 800, category: "extras", visual: "caramel" },
-  { id: "tomate", name: "Tomate", detail: "Fresco, corte grueso", price: 500, category: "extras", visual: "tomato" },
-  { id: "especial", name: "Ruddy's", detail: "Nuestra salsa secreta", price: 600, category: "salsas", visual: "sauce" },
-  { id: "barbacoa", name: "Barbacoa", detail: "Dulce y ahumada", price: 600, category: "salsas", visual: "bbq" },
-  { id: "spicy", name: "Spicy mayo", detail: "Picor amable", price: 700, category: "salsas", visual: "spicy" },
+  { id: "brioche", name: "Brioche", detail: "Mantecoso y tostado", price: 1100, category: "pan", image: "/ingredients/pan-arriba.png" },
+  { id: "simple", name: "Simple", detail: "1 medallón smash", price: 2800, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "doble", name: "Doble", detail: "2 medallones smash", price: 5000, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "triple", name: "Triple", detail: "3 medallones smash", price: 7000, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "cheddar", name: "Cheddar", detail: "Una capa por medallón", price: 1100, category: "queso", image: "/ingredients/cheddar.png" },
+  { id: "sin-queso", name: "Sin queso", detail: "Sólo carne", price: 0, category: "queso" },
+  { id: "bacon", name: "Panceta", detail: "Crocante y ahumada", price: 1500, category: "extras", image: "/ingredients/panceta.png" },
+  { id: "cebolla", name: "Cebolla caramelizada", detail: "Lenta y dulce", price: 800, category: "extras", image: "/ingredients/cebolla-caramelizada.png" },
+  { id: "tomate", name: "Tomate", detail: "Fresco, corte grueso", price: 500, category: "extras", image: "/ingredients/tomates.png" },
+  { id: "huevo", name: "Huevo frito", detail: "Yema cremosa", price: 900, category: "extras", image: "/ingredients/huevo-frito.png" },
 ];
+
 const menu = [
   { name: "La Ruddy", tag: "La más pedida", description: "Doble smash, cheddar, panceta, aros de cebolla y salsa Ruddy's.", price: 11900, image: "/brand/burger-hero.jpeg", position: "50% 64%" },
   { name: "Bacon Melt", tag: "Bien cargada", description: "Doble smash, cheddar fundido, panceta glaseada y barbacoa.", price: 10900, image: "/brand/burger-close.jpeg", position: "50% 60%" },
   { name: "Crispy Simple", tag: "Un clásico", description: "Smash, cheddar, crispy onion y nuestra salsa especial.", price: 8700, image: "/brand/promo.jpeg", position: "66% 57%" },
 ];
-const defaults: Record<CategoryId, string[]> = { pan: ["brioche"], carne: ["doble"], queso: ["cheddar"], extras: ["bacon", "onion"], salsas: ["especial"] };
+
+const defaults: Selection = {
+  pan: ["brioche"],
+  carne: ["doble"],
+  queso: ["cheddar"],
+  extras: ["bacon"],
+};
+
+const layerAssets: Record<string, LayerAsset> = {
+  bottomBun: { src: "/ingredients/pan-abajo.png", crop: [60, 280, 920, 490] },
+  topBun: { src: "/ingredients/pan-arriba.png", crop: [55, 220, 920, 650] },
+  patty: { src: "/ingredients/medallon.png", crop: [45, 285, 935, 450] },
+  cheddar: { src: "/ingredients/cheddar.png", crop: [45, 275, 935, 475] },
+  bacon: { src: "/ingredients/panceta.png", crop: [40, 335, 940, 310] },
+  onion: { src: "/ingredients/cebolla-caramelizada.png", crop: [40, 355, 950, 290] },
+  tomato: { src: "/ingredients/tomates.png", crop: [80, 245, 900, 470] },
+  egg: { src: "/ingredients/huevo-frito.png", crop: [55, 365, 910, 330] },
+};
+
+const imageCache = new Map<string, HTMLImageElement>();
+
+function loadLayerImage(src: string): Promise<HTMLImageElement> {
+  const cached = imageCache.get(src);
+  if (cached?.complete) return Promise.resolve(cached);
+  return new Promise((resolve, reject) => {
+    const image = cached ?? new Image();
+    image.onload = () => { imageCache.set(src, image); resolve(image); };
+    image.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+    if (!cached) image.src = src;
+  });
+}
+
+function drawAsset(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  asset: LayerAsset,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const [sx, sy, sw, sh] = asset.crop;
+  context.drawImage(image, sx, sy, sw, sh, x, y, width, height);
+}
+
+async function composeBurger(canvas: HTMLCanvasElement, selection: Selection) {
+  const assets = Object.fromEntries(
+    await Promise.all(
+      Object.entries(layerAssets).map(async ([key, asset]) => [key, await loadLayerImage(asset.src)]),
+    ),
+  ) as Record<string, HTMLImageElement>;
+
+  const offscreen = document.createElement("canvas");
+  offscreen.width = 1024;
+  offscreen.height = 1500;
+  const stack = offscreen.getContext("2d");
+  if (!stack) return;
+
+  drawAsset(stack, assets.bottomBun, layerAssets.bottomBun, 72, 1215, 880, 225);
+  let cursor = 1250;
+  const meat = selection.carne[0];
+  const patties = meat === "triple" ? 3 : meat === "doble" ? 2 : 1;
+  const withCheddar = selection.queso.includes("cheddar");
+
+  for (let index = 0; index < patties; index += 1) {
+    cursor -= 150;
+    drawAsset(stack, assets.patty, layerAssets.patty, 65, cursor, 894, 190);
+    if (withCheddar) {
+      cursor -= 45;
+      drawAsset(stack, assets.cheddar, layerAssets.cheddar, 72, cursor, 880, 155);
+    }
+  }
+
+  if (selection.extras.includes("tomate")) {
+    cursor -= 90;
+    drawAsset(stack, assets.tomato, layerAssets.tomato, 90, cursor, 850, 145);
+  }
+  if (selection.extras.includes("cebolla")) {
+    cursor -= 65;
+    drawAsset(stack, assets.onion, layerAssets.onion, 75, cursor, 875, 105);
+  }
+  if (selection.extras.includes("bacon")) {
+    cursor -= 75;
+    drawAsset(stack, assets.bacon, layerAssets.bacon, 68, cursor, 890, 110);
+  }
+  if (selection.extras.includes("huevo")) {
+    cursor -= 100;
+    drawAsset(stack, assets.egg, layerAssets.egg, 88, cursor, 850, 155);
+  }
+
+  cursor -= 260;
+  drawAsset(stack, assets.topBun, layerAssets.topBun, 62, cursor, 900, 325);
+
+  canvas.width = 1024;
+  canvas.height = 1024;
+  const output = canvas.getContext("2d");
+  if (!output) return;
+  output.clearRect(0, 0, canvas.width, canvas.height);
+  const sourceTop = Math.max(0, cursor - 30);
+  const sourceBottom = 1470;
+  output.drawImage(offscreen, 0, sourceTop, 1024, sourceBottom - sourceTop, 40, 40, 944, 944);
+}
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<CategoryId>("pan");
-  const [selected, setSelected] = useState<Record<CategoryId, string[]>>(defaults);
+  const [selected, setSelected] = useState<Selection>(defaults);
   const [burgerName, setBurgerName] = useState("La Mía");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const selectedIngredients = useMemo(() => ingredients.filter((item) => selected[item.category].includes(item.id)), [selected]);
-  const total = useMemo(() => 900 + selectedIngredients.reduce((sum, item) => sum + item.price, 0), [selectedIngredients]);
+  const [previewReady, setPreviewReady] = useState(false);
+  const [finalizing, setFinalizing] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const selectedIngredients = useMemo(
+    () => ingredients.filter((item) => selected[item.category].includes(item.id)),
+    [selected],
+  );
+  const total = useMemo(
+    () => 900 + selectedIngredients.reduce((sum, item) => sum + item.price, 0),
+    [selectedIngredients],
+  );
   const activeOptions = ingredients.filter((item) => item.category === activeCategory);
-  const has = (id: string) => Object.values(selected).some((group) => group.includes(id));
+
+  useEffect(() => {
+    let active = true;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    setPreviewReady(false);
+    composeBurger(canvas, selected)
+      .then(() => { if (active) setPreviewReady(true); })
+      .catch(() => { if (active) setNotice("No pudimos cargar una de las capas."); });
+    return () => { active = false; };
+  }, [selected]);
 
   const toggleIngredient = (ingredient: Ingredient) => {
     const single = ["pan", "carne", "queso"].includes(ingredient.category);
     setSelected((current) => {
       const group = current[ingredient.category];
       if (single) return { ...current, [ingredient.category]: [ingredient.id] };
-      if (group.includes(ingredient.id)) return { ...current, [ingredient.category]: group.filter((id) => id !== ingredient.id) };
-      if (ingredient.category === "salsas" && group.length >= 2) {
-        setNotice("Podés elegir hasta 2 salsas.");
-        window.setTimeout(() => setNotice(""), 2200);
-        return current;
+      if (group.includes(ingredient.id)) {
+        return { ...current, [ingredient.category]: group.filter((id) => id !== ingredient.id) };
       }
       return { ...current, [ingredient.category]: [...group, ingredient.id] };
     });
   };
+
   const addItem = (item: CartItem) => {
     setCart((current) => [...current, item]);
     setNotice(`${item.name} ya está en tu pedido.`);
     window.setTimeout(() => setNotice(""), 2200);
   };
-  const addCustom = () => {
-    const name = burgerName.trim() || "Mi Ruddy";
-    addItem({ id: Date.now(), name, detail: selectedIngredients.map((item) => item.name).join(" · "), total });
-    setCartOpen(true);
+
+  const finalizeBurger = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || finalizing) return;
+    setFinalizing(true);
+    try {
+      await composeBurger(canvas, selected);
+      const name = burgerName.trim() || "Mi Ruddy";
+      const image = canvas.toDataURL("image/png");
+      addItem({
+        id: Date.now(),
+        name,
+        detail: selectedIngredients.map((item) => item.name).join(" · "),
+        total,
+        image,
+        custom: true,
+      });
+      setCartOpen(true);
+    } finally {
+      setFinalizing(false);
+    }
   };
+
   const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
 
   return <main>
@@ -102,37 +259,35 @@ export default function Home() {
       <div className="section-heading"><div><p className="eyebrow">LOS INFALTABLES</p><h2>Si no querés pensar,<br/><em>elegí una leyenda.</em></h2></div><p>Probadas, aprobadas y peligrosamente repetibles. Todas salen con papas.</p></div>
       <div className="menu-grid">{menu.map((item, index) => <article className="menu-card" key={item.name}>
         <div className="menu-image" style={{ backgroundImage: `url("${item.image}")`, backgroundPosition: item.position }}><span className="menu-index">0{index + 1}</span><span className="menu-tag">{item.tag}</span></div>
-        <div className="menu-card-body"><div><h3>{item.name}</h3><p>{item.description}</p></div><div className="menu-card-footer"><strong>{money(item.price)}</strong><button type="button" onClick={() => addItem({ id: Date.now(), name: item.name, detail: item.description, total: item.price })}>Sumar <span>+</span></button></div></div>
+        <div className="menu-card-body"><div><h3>{item.name}</h3><p>{item.description}</p></div><div className="menu-card-footer"><strong>{money(item.price)}</strong><button type="button" onClick={() => addItem({ id: Date.now(), name: item.name, detail: item.description, total: item.price, image: item.image })}>Sumar <span>+</span></button></div></div>
       </article>)}</div>
     </section>
 
     <section className="builder-section" id="crear">
-      <div className="builder-heading"><p className="eyebrow">AHORA MANDÁS VOS</p><h2>Construí tu <em>obra maestra.</em></h2><p>Elegí cada capa. Nosotros la hacemos real.</p></div>
+      <div className="builder-heading"><p className="eyebrow">AHORA MANDÁS VOS</p><h2>Construí tu <em>obra maestra.</em></h2><p>Cada ingrediente es una capa real. Al finalizar, guardamos tu burger como una imagen única.</p></div>
       <div className="builder-shell">
         <div className="builder-controls">
           <div className="builder-progress" role="tablist" aria-label="Categorías de ingredientes">{categories.map((category, index) => <button key={category.id} type="button" className={activeCategory === category.id ? "active" : ""} onClick={() => setActiveCategory(category.id)} role="tab" aria-selected={activeCategory === category.id}><span>0{index + 1}</span>{category.label}</button>)}</div>
-          <div className="option-heading"><div><span>{categories.find((item) => item.id === activeCategory)?.eyebrow}</span><h3>Elegí {activeCategory === "carne" ? "tu carne" : `tu ${categories.find((item) => item.id === activeCategory)?.label.toLowerCase()}`}</h3></div><small>{["pan", "carne", "queso"].includes(activeCategory) ? "Elegí 1" : activeCategory === "salsas" ? "Hasta 2" : "Combiná libre"}</small></div>
+          <div className="option-heading"><div><span>{categories.find((item) => item.id === activeCategory)?.eyebrow}</span><h3>Elegí {activeCategory === "carne" ? "tu carne" : `tu ${categories.find((item) => item.id === activeCategory)?.label.toLowerCase()}`}</h3></div><small>{["pan", "carne", "queso"].includes(activeCategory) ? "Elegí 1" : "Combiná libre"}</small></div>
           <div className="ingredient-grid">{activeOptions.map((ingredient) => {
             const isSelected = selected[ingredient.category].includes(ingredient.id);
             return <button className={`ingredient-card ${isSelected ? "selected" : ""}`} key={ingredient.id} type="button" onClick={() => toggleIngredient(ingredient)} aria-pressed={isSelected}>
-              <span className={`ingredient-thumb visual-${ingredient.visual}`} aria-hidden="true"/><span className="ingredient-copy"><strong>{ingredient.name}</strong><small>{ingredient.detail}</small><b>{ingredient.price ? `+ ${money(ingredient.price)}` : "Sin cargo"}</b></span><span className="ingredient-check">{isSelected ? "✓" : "+"}</span>
+              {ingredient.image ? <img className="ingredient-thumb" src={ingredient.image} alt=""/> : <span className="ingredient-thumb ingredient-none" aria-hidden="true">—</span>}
+              <span className="ingredient-copy"><strong>{ingredient.name}</strong><small>{ingredient.detail}</small><b>{ingredient.price ? `+ ${money(ingredient.price)}` : "Sin cargo"}</b></span><span className="ingredient-check">{isSelected ? "✓" : "+"}</span>
             </button>;
           })}</div>
-          <div className="category-nav"><button type="button" disabled={activeCategory === "pan"} onClick={() => { const i = categories.findIndex((item) => item.id === activeCategory); setActiveCategory(categories[i - 1].id); }}>← Anterior</button><button type="button" disabled={activeCategory === "salsas"} onClick={() => { const i = categories.findIndex((item) => item.id === activeCategory); setActiveCategory(categories[i + 1].id); }}>Siguiente →</button></div>
+          <div className="category-nav"><button type="button" disabled={activeCategory === "pan"} onClick={() => { const i = categories.findIndex((item) => item.id === activeCategory); setActiveCategory(categories[i - 1].id); }}>← Anterior</button><button type="button" disabled={activeCategory === "extras"} onClick={() => { const i = categories.findIndex((item) => item.id === activeCategory); setActiveCategory(categories[i + 1].id); }}>Siguiente →</button></div>
         </div>
         <aside className="burger-preview">
-          <div className="preview-topline"><span>VISTA EN VIVO</span><button type="button" onClick={() => setSelected(defaults)}>Reiniciar ↺</button></div>
-          <div className="photo-stack" aria-label="Vista previa fotográfica de la hamburguesa">
-            <div className="burger-piece piece-bottom-bun"/>
-            {(has("simple") || has("doble") || has("triple")) && <div className="burger-piece piece-lower-patty"/>}
-            {(has("doble") || has("triple")) && <div className="burger-piece piece-upper-patty"/>}
-            {has("triple") && <div className="burger-piece piece-upper-patty piece-third-patty"/>}
-            {has("cheddar") && <div className="burger-piece piece-cheese"/>}{has("provoleta") && <div className="synthetic-layer layer-provoleta"/>}{has("tomate") && <div className="synthetic-layer layer-tomato"/>}{has("cebolla") && <div className="synthetic-layer layer-caramel"/>}{has("bacon") && <div className="burger-piece piece-bacon"/>}{has("onion") && <div className="burger-piece piece-onions"/>}{(has("especial") || has("barbacoa") || has("spicy")) && <div className={`sauce-gloss ${has("spicy") ? "spicy" : ""}`}/>}<div className="burger-piece piece-top-bun"/>
+          <div className="preview-topline"><span>VISTA EN VIVO · PNG TRANSPARENTE</span><button type="button" onClick={() => setSelected(defaults)}>Reiniciar ↺</button></div>
+          <div className={`photo-stack ${previewReady ? "ready" : "loading"}`} aria-label="Vista previa por capas de la hamburguesa">
+            <canvas ref={canvasRef} className="burger-canvas" aria-label="Composición visual de los ingredientes seleccionados"/>
+            {!previewReady && <span className="preview-loading">Montando capas…</span>}
           </div>
           <div className="preview-summary">
             <label htmlFor="burger-name">Bautizá tu creación</label><div className="name-field"><input id="burger-name" value={burgerName} maxLength={30} onChange={(event) => setBurgerName(event.target.value)} placeholder="Ej: La Explosiva"/><span>{burgerName.length}/30</span></div>
             <div className="selected-list">{selectedIngredients.map((item) => <span key={item.id}>{item.name}</span>)}</div>
-            <div className="total-row"><div><small>TOTAL</small><strong>{money(total)}</strong></div><button type="button" onClick={addCustom}>Sumar al pedido <span>+</span></button></div><p className="price-note">Precio estimado. Confirmamos disponibilidad antes de preparar.</p>
+            <div className="total-row"><div><small>TOTAL</small><strong>{money(total)}</strong></div><button type="button" disabled={!previewReady || finalizing} onClick={finalizeBurger}>{finalizing ? "Generando PNG…" : "Finalizar hamburguesa"} <span>→</span></button></div><p className="price-note">La imagen final conserva transparencia y queda asociada a este ítem del carrito.</p>
           </div>
         </aside>
       </div>
@@ -143,7 +298,7 @@ export default function Home() {
 
     <div className={`cart-overlay ${cartOpen ? "open" : ""}`} onClick={() => setCartOpen(false)}/><aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
       <div className="cart-header"><div><span>TU PEDIDO</span><h2>Lo bueno<br/>está acá.</h2></div><button type="button" onClick={() => setCartOpen(false)} aria-label="Cerrar pedido">×</button></div>
-      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><span>R</span><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}><div className="cart-qty">1</div><div><h3>{item.name}</h3><p>{item.detail}</p><strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
+      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><span>R</span><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}>{item.image ? <img className={`cart-item-image ${item.custom ? "transparent" : ""}`} src={item.image} alt={`Vista de ${item.name}`}/> : <div className="cart-qty">1</div>}<div><h3>{item.name}</h3><p>{item.detail}</p>{item.custom && <span className="custom-badge">Creación personalizada · PNG guardado</span>}<strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
       {cart.length > 0 && <div className="cart-checkout"><div><span>Total</span><strong>{money(cartTotal)}</strong></div><button type="button">Continuar pedido <span>→</span></button><small>Finalizás y coordinás por WhatsApp</small></div>}
     </aside>
     {notice && <div className="toast" role="status"><span>✓</span>{notice}</div>}
