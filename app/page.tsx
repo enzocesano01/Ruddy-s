@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   burgerPhoto,
+  drinks,
   extras,
   locations,
   menuCategories,
@@ -28,7 +29,31 @@ type CartItem = {
   image?: string;
   custom?: boolean;
   extras?: string[];
+  drink?: string;
 };
+
+type Delivery = "retiro" | "envio";
+type Payment = "mercadopago" | "transferencia" | "efectivo";
+
+type OrderForm = {
+  delivery: Delivery;
+  branch: string;
+  address: string;
+  name: string;
+  phone: string;
+  notes: string;
+  payment: Payment;
+};
+
+type PlacedOrder = { reference: string; form: OrderForm; total: number };
+
+const DELIVERY_FEE = 1800;
+
+const paymentMethods: { id: Payment; label: string; detail: string }[] = [
+  { id: "mercadopago", label: "Mercado Pago", detail: "Tarjeta, dinero en cuenta o QR" },
+  { id: "transferencia", label: "Transferencia", detail: "Te pasamos el CBU al confirmar" },
+  { id: "efectivo", label: "Efectivo", detail: "Pagás al retirar o al recibir" },
+];
 type Selection = Record<CategoryId, string[]>;
 type Crop = [number, number, number, number];
 
@@ -50,9 +75,9 @@ const categories: { id: CategoryId; label: string; eyebrow: string }[] = [
 
 const ingredients: Ingredient[] = [
   { id: "brioche", name: "Brioche", detail: "Mantecoso y tostado", price: 1100, category: "pan", image: "/ingredients/pan-arriba.png" },
-  { id: "simple", name: "Simple", detail: "1 medallón smash", price: 2800, category: "carne", image: "/ingredients/medallon.png" },
-  { id: "doble", name: "Doble", detail: "2 medallones smash", price: 5000, category: "carne", image: "/ingredients/medallon.png" },
-  { id: "triple", name: "Triple", detail: "3 medallones smash", price: 7000, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "simple", name: "Simple", detail: "1 medallón de 110 g", price: 2800, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "doble", name: "Doble", detail: "2 medallones de 110 g", price: 5000, category: "carne", image: "/ingredients/medallon.png" },
+  { id: "triple", name: "Triple", detail: "3 medallones de 110 g", price: 7000, category: "carne", image: "/ingredients/medallon.png" },
   { id: "cheddar", name: "Cheddar", detail: "Una capa por medallón", price: 1100, category: "queso", image: "/ingredients/cheddar.png" },
   { id: "sin-queso", name: "Sin queso", detail: "Sólo carne", price: 0, category: "queso" },
   { id: "bacon", name: "Panceta", detail: "Crocante y ahumada", price: 1500, category: "extras", image: "/ingredients/panceta.png" },
@@ -66,6 +91,16 @@ const defaults: Selection = {
   carne: ["doble"],
   queso: ["cheddar"],
   extras: ["bacon"],
+};
+
+const emptyOrder: OrderForm = {
+  delivery: "retiro",
+  branch: locations[0].address,
+  address: "",
+  name: "",
+  phone: "",
+  notes: "",
+  payment: "mercadopago",
 };
 
 const layerAssets: Record<string, LayerAsset> = {
@@ -170,7 +205,7 @@ function MenuPhoto({ item }: { item: MenuItem }) {
   return (
     <>
       <div className="menu-photo-missing" aria-hidden="true">
-        <span className="missing-mark">R</span>
+        <img className="missing-mark" src="/brand/logo-mark.png" alt=""/>
         <span className="missing-name">{item.name}</span>
       </div>
       {!failed && (
@@ -232,6 +267,10 @@ export default function Home() {
   const [menuCategory, setMenuCategory] = useState<MenuCategoryId>("clasicas");
   const [pendingItem, setPendingItem] = useState<MenuItem | null>(null);
   const [pendingExtras, setPendingExtras] = useState<string[]>([]);
+  const [pendingDrink, setPendingDrink] = useState<string | null>(null);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [order, setOrder] = useState<OrderForm>(emptyOrder);
+  const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryId>("pan");
   const [selected, setSelected] = useState<Selection>(defaults);
   const [burgerName, setBurgerName] = useState("La Mía");
@@ -304,6 +343,20 @@ export default function Home() {
   };
 
   const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
+  const orderTotal = cartTotal + (order.delivery === "envio" ? DELIVERY_FEE : 0);
+  const canPlaceOrder =
+    cart.length > 0 &&
+    order.name.trim().length > 1 &&
+    order.phone.trim().length > 5 &&
+    (order.delivery === "retiro" || order.address.trim().length > 4);
+
+  // El cobro real todavía no está conectado: esto arma la orden y muestra el
+  // paso de pago. Acá va la llamada al proveedor (ver README).
+  const placeOrder = () => {
+    if (!canPlaceOrder) return;
+    const reference = `RD-${Date.now().toString(36).slice(-6).toUpperCase()}`;
+    setPlacedOrder({ reference, form: order, total: orderTotal });
+  };
 
   const activeMenu = menuCategories.find((category) => category.id === menuCategory)!;
   const visibleItems = menuItems.filter((item) => item.category === menuCategory);
@@ -321,11 +374,21 @@ export default function Home() {
     }
     setPendingItem(item);
     setPendingExtras([]);
+    setPendingDrink(null);
   };
 
   const chosenExtras = extras.filter((extra) => pendingExtras.includes(extra.id));
+  const chosenDrink = drinks.find((drink) => drink.id === pendingDrink) ?? null;
   const pendingTotal =
-    (pendingItem?.price ?? 0) + chosenExtras.reduce((sum, extra) => sum + extra.price, 0);
+    (pendingItem?.price ?? 0) +
+    chosenExtras.reduce((sum, extra) => sum + extra.price, 0) +
+    (chosenDrink?.price ?? 0);
+
+  const closePending = () => {
+    setPendingItem(null);
+    setPendingExtras([]);
+    setPendingDrink(null);
+  };
 
   const confirmPending = () => {
     if (!pendingItem) return;
@@ -336,28 +399,28 @@ export default function Home() {
       total: pendingTotal,
       image: burgerPhoto(pendingItem.id),
       extras: chosenExtras.map((extra) => extra.name),
+      drink: chosenDrink ? `${chosenDrink.name} · ${chosenDrink.detail}` : undefined,
     });
-    setPendingItem(null);
-    setPendingExtras([]);
+    closePending();
   };
 
   return <main>
     <header className="site-header">
-      <a className="brand-lockup" href="#inicio" aria-label="Ruddy's, inicio"><span className="brand-script">Ruddy&apos;s</span><span className="brand-subtitle">SMASH BURGERS</span></a>
+      <a className="brand-lockup" href="#inicio" aria-label="Ruddy's, inicio"><img className="brand-mark" src="/brand/logo-mark.png" alt=""/><img className="brand-word" src="/brand/logo-word.png" alt="Ruddy&apos;s"/><span className="brand-subtitle">HAMBURGUESAS</span></a>
       <nav aria-label="Navegación principal"><a href="#menu">Menú</a><a href="#crear">Creá la tuya</a><a href="#local">El local</a></nav>
       <button className="cart-trigger" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir pedido, ${cart.length} productos`}>Mi pedido <span>{cart.length}</span></button>
     </header>
 
     <section className="hero" id="inicio">
       <div className="hero-copy">
-        <p className="eyebrow">SMASHED EN TUCUMÁN · DESDE 2020</p>
+        <p className="eyebrow">HAMBURGUESAS EN TUCUMÁN · DESDE 2020</p>
         <h1>Tu antojo.<br/><em>Tus reglas.</em></h1>
         <p className="hero-description">Pan tostado, carne con costra y todo lo que te haga feliz en el medio. Acá la burger se arma como vos querés.</p>
         <div className="hero-actions"><a className="button button-primary" href="#crear">Armá tu burger <span>↓</span></a><a className="text-link" href="#menu">Ver el menú <span>↗</span></a></div>
-        <div className="hero-proof"><div className="proof-faces" aria-hidden="true"><span>R</span><span>R</span><span>R</span></div><p><strong>4,9</strong> en reseñas locales<br/><span>Hechas al momento, siempre.</span></p></div>
+        <div className="hero-proof"><div className="proof-faces" aria-hidden="true"><img src="/brand/logo-mark.png" alt=""/><img src="/brand/logo-mark.png" alt=""/><img src="/brand/logo-mark.png" alt=""/></div><p><strong>4,9</strong> en reseñas locales<br/><span>Hechas al momento, siempre.</span></p></div>
       </div>
       <div className="hero-visual" aria-label="Hamburguesa Ruddy's con doble carne, cheddar y panceta">
-        <div className="hero-image"/><div className="hero-stamp"><span>100%</span><strong>SMASH</strong><small>HECHO AL MOMENTO</small></div><p className="hero-caption">DOBLE RUDDY · LA FAVORITA</p>
+        <div className="hero-image"/><div className="hero-stamp"><span>100%</span><strong>CARNE</strong><small>HECHO AL MOMENTO</small></div><p className="hero-caption">DOBLE RUDDY · LA FAVORITA</p>
       </div>
     </section>
 
@@ -406,7 +469,7 @@ export default function Home() {
     </section>
 
     <section className="local-section" id="local">
-      <div className="local-photo"><div className="local-logo">R</div></div>
+      <div className="local-photo"><img className="local-logo" src="/brand/logo-mark.png" alt=""/></div>
       <div className="local-copy">
         <p className="eyebrow">RUDDY&apos;S TUCUMÁN</p>
         <h2>Siempre hay Ruddy&apos;s<br/><em>cerca tuyo.</em></h2>
@@ -416,18 +479,18 @@ export default function Home() {
         <a className="button button-primary" href="https://wa.me/" target="_blank" rel="noreferrer">Hablar por WhatsApp <span>↗</span></a>
       </div>
     </section>
-    <footer><div className="footer-brand">Ruddy&apos;s</div><p>SMASH BURGERS · TUCUMÁN</p><div><a href="#menu">Menú</a><a href="#crear">Creá la tuya</a><a href="#inicio">Volver arriba ↑</a></div></footer>
+    <footer><img className="footer-logo" src="/brand/logo-word.png" alt="Ruddy&apos;s"/><p>HAMBURGUESAS · TUCUMÁN</p><div><a href="#menu">Menú</a><a href="#crear">Creá la tuya</a><a href="#inicio">Volver arriba ↑</a></div></footer>
 
     <div className={`cart-overlay ${cartOpen ? "open" : ""}`} onClick={() => setCartOpen(false)}/><aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
       <div className="cart-header"><div><span>TU PEDIDO</span><h2>Lo bueno<br/>está acá.</h2></div><button type="button" onClick={() => setCartOpen(false)} aria-label="Cerrar pedido">×</button></div>
-      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><span>R</span><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}>{item.image ? <img className={`cart-item-image ${item.custom ? "transparent" : ""}`} src={item.image} alt={`Vista de ${item.name}`}/> : <div className="cart-qty">1</div>}<div><h3>{item.name}</h3><p>{item.detail}</p>{item.custom && <span className="custom-badge">Creación personalizada · PNG guardado</span>}{item.extras && item.extras.length > 0 && <span className="cart-extras">+ {item.extras.join(" · ")}</span>}<strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
-      {cart.length > 0 && <div className="cart-checkout"><div><span>Total</span><strong>{money(cartTotal)}</strong></div><button type="button">Continuar pedido <span>→</span></button><small>Finalizás y coordinás por WhatsApp</small></div>}
+      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><img src="/brand/logo-mark.png" alt=""/><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}>{item.image ? <img className={`cart-item-image ${item.custom ? "transparent" : ""}`} src={item.image} alt={`Vista de ${item.name}`}/> : <div className="cart-qty">1</div>}<div><h3>{item.name}</h3><p>{item.detail}</p>{item.custom && <span className="custom-badge">Creación personalizada · PNG guardado</span>}{item.extras && item.extras.length > 0 && <span className="cart-extras">+ {item.extras.join(" · ")}</span>}{item.drink && <span className="cart-extras cart-drink">🥤 {item.drink}</span>}<strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
+      {cart.length > 0 && <div className="cart-checkout"><div><span>Total</span><strong>{money(cartTotal)}</strong></div><button type="button" onClick={() => { setCartOpen(false); setCheckoutOpen(true); }}>Finalizar pedido <span>→</span></button><small>Elegís entrega y forma de pago en el próximo paso</small></div>}
     </aside>
-    {pendingItem && <div className="extras-backdrop" onClick={() => setPendingItem(null)}>
+    {pendingItem && <div className="extras-backdrop" onClick={closePending}>
       <div className="extras-modal" role="dialog" aria-modal="true" aria-labelledby="extras-title" onClick={(event) => event.stopPropagation()}>
         <div className="extras-head">
           <div><span>Sumaste</span><h2 id="extras-title">{pendingItem.name}</h2><p>{pendingItem.ingredients}</p></div>
-          <button type="button" onClick={() => setPendingItem(null)} aria-label="Cerrar">×</button>
+          <button type="button" onClick={closePending} aria-label="Cerrar">×</button>
         </div>
         <div className="extras-body">
           <div className="extras-legend"><strong>¿Le sumás algo?</strong><small>Opcional</small></div>
@@ -439,11 +502,97 @@ export default function Home() {
               <b>{money(extra.price)}</b>
             </button>;
           })}</div>
+
+          <div className="extras-legend extras-legend-drinks"><strong>¿Con bebida?</strong><small>Elegí 1</small></div>
+          <div className="extras-list">{drinks.map((drink) => {
+            const picked = pendingDrink === drink.id;
+            return <button key={drink.id} type="button" className={`extra-chip ${picked ? "picked" : ""}`} aria-pressed={picked} onClick={() => setPendingDrink(picked ? null : drink.id)}>
+              <span className="extra-check">{picked ? "✓" : "+"}</span>
+              <span className="extra-copy"><strong>{drink.name}</strong><small>{drink.detail}</small></span>
+              <b>{money(drink.price)}</b>
+            </button>;
+          })}</div>
         </div>
         <div className="extras-foot">
           <div><small>TOTAL</small><strong>{money(pendingTotal)}</strong></div>
-          <button type="button" onClick={confirmPending}>{chosenExtras.length ? `Agregar con ${chosenExtras.length} extra${chosenExtras.length > 1 ? "s" : ""}` : "Agregar al pedido"} <span>→</span></button>
+          <button type="button" onClick={confirmPending}>{(() => {
+            const added = chosenExtras.length + (chosenDrink ? 1 : 0);
+            return added ? `Agregar con ${added} sumado${added > 1 ? "s" : ""}` : "Agregar al pedido";
+          })()} <span>→</span></button>
         </div>
+      </div>
+    </div>}
+
+    {checkoutOpen && <div className="checkout-backdrop">
+      <div className="checkout-panel" role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+        {placedOrder ? <div className="checkout-done">
+          <span className="done-mark">✓</span>
+          <h2>Pedido confirmado</h2>
+          <p className="done-ref">Referencia <strong>{placedOrder.reference}</strong></p>
+          {placedOrder.form.payment === "mercadopago" && <p className="done-note">Acá va el redirect a Mercado Pago. Todavía no está conectado: falta la integración con la cuenta de Ruddy&apos;s.</p>}
+          {placedOrder.form.payment === "transferencia" && <p className="done-note">Acá va el CBU y el alias de Ruddy&apos;s para transferir. Falta cargar los datos reales.</p>}
+          {placedOrder.form.payment === "efectivo" && <p className="done-note">Pagás {placedOrder.form.delivery === "retiro" ? "al retirar en el local" : "al recibirlo"}. Nada más que hacer acá.</p>}
+          <div className="done-summary">
+            <div><small>{placedOrder.form.delivery === "retiro" ? "RETIRÁS EN" : "ENVIAMOS A"}</small><strong>{placedOrder.form.delivery === "retiro" ? placedOrder.form.branch : placedOrder.form.address}</strong></div>
+            <div><small>TOTAL</small><strong>{money(placedOrder.total)}</strong></div>
+          </div>
+          <button type="button" onClick={() => { setCart([]); setPlacedOrder(null); setCheckoutOpen(false); setOrder(emptyOrder); }}>Listo</button>
+        </div> : <>
+          <div className="checkout-head">
+            <div><span>ÚLTIMO PASO</span><h2 id="checkout-title">Finalizar pedido</h2></div>
+            <button type="button" onClick={() => setCheckoutOpen(false)} aria-label="Volver">×</button>
+          </div>
+
+          <div className="checkout-body">
+            <section className="checkout-block">
+              <h3>Tu pedido</h3>
+              <ul className="checkout-lines">{cart.map((item) => <li key={item.id}>
+                <span>{item.name}{item.extras && item.extras.length > 0 && <small>+ {item.extras.join(" · ")}</small>}{item.drink && <small>{item.drink}</small>}</span>
+                <b>{money(item.total)}</b>
+              </li>)}</ul>
+            </section>
+
+            <section className="checkout-block">
+              <h3>¿Cómo lo querés?</h3>
+              <div className="checkout-toggle">
+                <button type="button" className={order.delivery === "retiro" ? "on" : ""} onClick={() => setOrder((o) => ({ ...o, delivery: "retiro" }))}>Retiro en local<small>Sin cargo</small></button>
+                <button type="button" className={order.delivery === "envio" ? "on" : ""} onClick={() => setOrder((o) => ({ ...o, delivery: "envio" }))}>Envío a domicilio<small>+ {money(DELIVERY_FEE)}</small></button>
+              </div>
+              {order.delivery === "retiro"
+                ? <label className="field"><span>Local</span><select value={order.branch} onChange={(event) => setOrder((o) => ({ ...o, branch: event.target.value }))}>{locations.map((place) => <option key={place.address} value={place.address}>{place.address} — {place.area}</option>)}</select></label>
+                : <label className="field"><span>Dirección</span><input value={order.address} onChange={(event) => setOrder((o) => ({ ...o, address: event.target.value }))} placeholder="Calle, número, piso/depto"/></label>}
+            </section>
+
+            <section className="checkout-block">
+              <h3>Tus datos</h3>
+              <div className="field-row">
+                <label className="field"><span>Nombre</span><input value={order.name} onChange={(event) => setOrder((o) => ({ ...o, name: event.target.value }))} placeholder="Cómo te llamamos"/></label>
+                <label className="field"><span>Teléfono</span><input value={order.phone} onChange={(event) => setOrder((o) => ({ ...o, phone: event.target.value }))} placeholder="381 ..." inputMode="tel"/></label>
+              </div>
+              <label className="field"><span>Aclaraciones <em>(opcional)</em></span><input value={order.notes} onChange={(event) => setOrder((o) => ({ ...o, notes: event.target.value }))} placeholder="Sin pepinillos, timbre roto, etc."/></label>
+            </section>
+
+            <section className="checkout-block">
+              <h3>Forma de pago</h3>
+              <div className="pay-list">{paymentMethods.map((method) => <button key={method.id} type="button" className={`pay-option ${order.payment === method.id ? "on" : ""}`} aria-pressed={order.payment === method.id} onClick={() => setOrder((o) => ({ ...o, payment: method.id }))}>
+                <span className="pay-radio" aria-hidden="true"/>
+                <span><strong>{method.label}</strong><small>{method.detail}</small></span>
+              </button>)}</div>
+            </section>
+          </div>
+
+          <div className="checkout-foot">
+            <div className="checkout-totals">
+              <div><span>Subtotal</span><b>{money(cartTotal)}</b></div>
+              {order.delivery === "envio" && <div><span>Envío</span><b>{money(DELIVERY_FEE)}</b></div>}
+              <div className="grand"><span>Total</span><b>{money(orderTotal)}</b></div>
+            </div>
+            <button type="button" disabled={!canPlaceOrder} onClick={placeOrder}>
+              {order.payment === "mercadopago" ? "Ir a pagar" : "Confirmar pedido"} <span>→</span>
+            </button>
+            {!canPlaceOrder && <small className="checkout-hint">Completá nombre, teléfono{order.delivery === "envio" ? " y dirección" : ""} para seguir.</small>}
+          </div>
+        </>}
       </div>
     </div>}
 

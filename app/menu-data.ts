@@ -342,6 +342,16 @@ export const menuItems: MenuItem[] = [
 // una hamburguesa al pedido.
 export const extras = menuItems.filter((item) => item.category === "extras");
 
+// Bebidas, también ofrecidas al sumar una hamburguesa.
+export type Drink = { id: string; name: string; detail: string; price: number };
+
+export const drinks: Drink[] = [
+  { id: "pepsi", name: "Pepsi", detail: "Lata chica 354 ml", price: 2600 },
+  { id: "mirinda", name: "Mirinda naranja", detail: "Lata 354 ml", price: 2600 },
+  { id: "seven-up", name: "7up", detail: "Lata 354 ml", price: 2600 },
+  { id: "agua", name: "Agua sin gas", detail: "Villavicencio 500 ml", price: 2200 },
+];
+
 export const burgerPhoto = (id: string) => `/burgers/${id}.jpg`;
 
 // Locales de Ruddy's.

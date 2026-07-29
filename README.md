@@ -85,6 +85,26 @@ or enforce explicit server-side membership or allowlist checks.
 Use SIWC for account pages, user-specific dashboards, saved records, and write
 actions tied to the current ChatGPT user. Leave public content anonymous.
 
+## Checkout y pagos (pendiente)
+
+El flujo de pedido está completo hasta el paso de pago: carrito → extras y
+bebida → entrega (retiro o envío) → datos → forma de pago → confirmación con
+número de referencia.
+
+**El cobro real todavía no está conectado.** `placeOrder()` en `app/page.tsx`
+arma la orden y muestra la pantalla de confirmación, pero no llama a ningún
+proveedor. Para cerrarlo falta:
+
+- Elegir proveedor (Mercado Pago es lo habitual en Argentina) y crear la
+  aplicación para obtener `ACCESS_TOKEN` y `PUBLIC_KEY`.
+- Una route handler server-side que cree la preferencia de pago y devuelva el
+  `init_point`; `placeOrder()` redirige ahí en lugar de mostrar el placeholder.
+- Un webhook para confirmar el pago acreditado antes de dar la orden por buena.
+- Persistir las órdenes (la tabla va en `db/schema.ts`, hoy vacío).
+- Cargar CBU y alias reales para la opción de transferencia.
+
+El precio del envío es un valor fijo en `DELIVERY_FEE` (`app/page.tsx`).
+
 ## Useful Commands
 
 - `npm run dev`: start local development
