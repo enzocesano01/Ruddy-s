@@ -63,13 +63,6 @@ export const menuCategories: {
     note: "Lo que pedís cuando una burger no alcanza.",
     compact: true,
   },
-  {
-    id: "extras",
-    label: "Extras",
-    eyebrow: "+ placer",
-    note: "Sumale lo que quieras a cualquier pedido.",
-    compact: true,
-  },
 ];
 
 export const menuItems: MenuItem[] = [
@@ -344,6 +337,10 @@ export const menuItems: MenuItem[] = [
     category: "extras",
   },
 ];
+
+// Los extras no son una categoría navegable del menú: se ofrecen al sumar
+// una hamburguesa al pedido.
+export const extras = menuItems.filter((item) => item.category === "extras");
 
 export const burgerPhoto = (id: string) => `/burgers/${id}.jpg`;
 

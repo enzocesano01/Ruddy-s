@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   burgerPhoto,
+  extras,
   locations,
   menuCategories,
   menuItems,
@@ -26,6 +27,7 @@ type CartItem = {
   total: number;
   image?: string;
   custom?: boolean;
+  extras?: string[];
 };
 type Selection = Record<CategoryId, string[]>;
 type Crop = [number, number, number, number];
@@ -228,6 +230,8 @@ function MenuRow({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem) => v
 
 export default function Home() {
   const [menuCategory, setMenuCategory] = useState<MenuCategoryId>("clasicas");
+  const [pendingItem, setPendingItem] = useState<MenuItem | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<string[]>([]);
   const [activeCategory, setActiveCategory] = useState<CategoryId>("pan");
   const [selected, setSelected] = useState<Selection>(defaults);
   const [burgerName, setBurgerName] = useState("La Mía");
@@ -304,14 +308,38 @@ export default function Home() {
   const activeMenu = menuCategories.find((category) => category.id === menuCategory)!;
   const visibleItems = menuItems.filter((item) => item.category === menuCategory);
 
-  const addMenuItem = (item: MenuItem) =>
+  // Las guarniciones se suman de una; las hamburguesas abren el paso de extras.
+  const addMenuItem = (item: MenuItem) => {
+    if (activeMenu.compact) {
+      addItem({
+        id: Date.now(),
+        name: item.name,
+        detail: item.ingredients,
+        total: item.price,
+      });
+      return;
+    }
+    setPendingItem(item);
+    setPendingExtras([]);
+  };
+
+  const chosenExtras = extras.filter((extra) => pendingExtras.includes(extra.id));
+  const pendingTotal =
+    (pendingItem?.price ?? 0) + chosenExtras.reduce((sum, extra) => sum + extra.price, 0);
+
+  const confirmPending = () => {
+    if (!pendingItem) return;
     addItem({
       id: Date.now(),
-      name: item.name,
-      detail: item.ingredients,
-      total: item.price,
-      image: activeMenu.compact ? undefined : burgerPhoto(item.id),
+      name: pendingItem.name,
+      detail: pendingItem.ingredients,
+      total: pendingTotal,
+      image: burgerPhoto(pendingItem.id),
+      extras: chosenExtras.map((extra) => extra.name),
     });
+    setPendingItem(null);
+    setPendingExtras([]);
+  };
 
   return <main>
     <header className="site-header">
@@ -392,9 +420,33 @@ export default function Home() {
 
     <div className={`cart-overlay ${cartOpen ? "open" : ""}`} onClick={() => setCartOpen(false)}/><aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
       <div className="cart-header"><div><span>TU PEDIDO</span><h2>Lo bueno<br/>está acá.</h2></div><button type="button" onClick={() => setCartOpen(false)} aria-label="Cerrar pedido">×</button></div>
-      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><span>R</span><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}>{item.image ? <img className={`cart-item-image ${item.custom ? "transparent" : ""}`} src={item.image} alt={`Vista de ${item.name}`}/> : <div className="cart-qty">1</div>}<div><h3>{item.name}</h3><p>{item.detail}</p>{item.custom && <span className="custom-badge">Creación personalizada · PNG guardado</span>}<strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
+      <div className="cart-items">{cart.length === 0 ? <div className="empty-cart"><span>R</span><h3>Todavía no sumaste nada.</h3><p>Elegí una del menú o armá la tuya desde cero.</p><button type="button" onClick={() => setCartOpen(false)}>Seguir mirando</button></div> : cart.map((item) => <article key={item.id}>{item.image ? <img className={`cart-item-image ${item.custom ? "transparent" : ""}`} src={item.image} alt={`Vista de ${item.name}`}/> : <div className="cart-qty">1</div>}<div><h3>{item.name}</h3><p>{item.detail}</p>{item.custom && <span className="custom-badge">Creación personalizada · PNG guardado</span>}{item.extras && item.extras.length > 0 && <span className="cart-extras">+ {item.extras.join(" · ")}</span>}<strong>{money(item.total)}</strong></div><button type="button" aria-label={`Quitar ${item.name}`} onClick={() => setCart((current) => current.filter((cartItem) => cartItem.id !== item.id))}>×</button></article>)}</div>
       {cart.length > 0 && <div className="cart-checkout"><div><span>Total</span><strong>{money(cartTotal)}</strong></div><button type="button">Continuar pedido <span>→</span></button><small>Finalizás y coordinás por WhatsApp</small></div>}
     </aside>
+    {pendingItem && <div className="extras-backdrop" onClick={() => setPendingItem(null)}>
+      <div className="extras-modal" role="dialog" aria-modal="true" aria-labelledby="extras-title" onClick={(event) => event.stopPropagation()}>
+        <div className="extras-head">
+          <div><span>Sumaste</span><h2 id="extras-title">{pendingItem.name}</h2><p>{pendingItem.ingredients}</p></div>
+          <button type="button" onClick={() => setPendingItem(null)} aria-label="Cerrar">×</button>
+        </div>
+        <div className="extras-body">
+          <div className="extras-legend"><strong>¿Le sumás algo?</strong><small>Opcional</small></div>
+          <div className="extras-list">{extras.map((extra) => {
+            const picked = pendingExtras.includes(extra.id);
+            return <button key={extra.id} type="button" className={`extra-chip ${picked ? "picked" : ""}`} aria-pressed={picked} onClick={() => setPendingExtras((current) => picked ? current.filter((id) => id !== extra.id) : [...current, extra.id])}>
+              <span className="extra-check">{picked ? "✓" : "+"}</span>
+              <span className="extra-copy"><strong>{extra.name}</strong>{extra.ingredients && <small>{extra.ingredients}</small>}</span>
+              <b>{money(extra.price)}</b>
+            </button>;
+          })}</div>
+        </div>
+        <div className="extras-foot">
+          <div><small>TOTAL</small><strong>{money(pendingTotal)}</strong></div>
+          <button type="button" onClick={confirmPending}>{chosenExtras.length ? `Agregar con ${chosenExtras.length} extra${chosenExtras.length > 1 ? "s" : ""}` : "Agregar al pedido"} <span>→</span></button>
+        </div>
+      </div>
+    </div>}
+
     {notice && <div className="toast" role="status"><span>✓</span>{notice}</div>}
   </main>;
 }
