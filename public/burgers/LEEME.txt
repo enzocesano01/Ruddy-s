@@ -1,0 +1,36 @@
+Fotos del menú de Ruddy's
+=========================
+
+Una imagen por hamburguesa, con EXACTAMENTE el nombre de archivo del slug.
+Si un archivo falta, la card muestra un placeholder de marca — no rompe nada.
+
+
+YA CARGADAS (13)
+----------------
+Recortadas de los flyers oficiales, sin el texto ni el marco del teléfono.
+
+  ruddys.jpg           crispy-ruddys.jpg    cuarto-de-ruddy.jpg
+  california.jpg       la-ruddyneta.jpg     macddys.jpg
+  atlanta.jpg          tulsa.jpg            vermont.jpg
+  blueddys.jpg         big-rudd.jpg         big-crispy.jpg
+  veggie.jpg
+
+
+FALTAN (7)
+----------
+No había flyer con el nombre impreso para estas, y no se pueden
+identificar sin riesgo de confundirlas entre sí:
+
+  cheeseburger.jpg
+  bacon-cheeseburger.jpg
+  san-diego.jpg
+  veggie-power.jpg
+  tulsa-smash.jpg
+  red-smash.jpg
+  golden-smash.jpg
+
+
+SIN FOTO POR DISEÑO
+-------------------
+Las categorías "Como pa' variar" y "Extras" se muestran como lista,
+sin imagen. No necesitan archivos.

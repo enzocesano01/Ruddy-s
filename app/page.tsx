@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  burgerPhoto,
+  locations,
+  menuCategories,
+  menuItems,
+  type MenuCategoryId,
+  type MenuItem,
+} from "./menu-data";
 
 type CategoryId = "pan" | "carne" | "queso" | "extras";
 type Ingredient = {
@@ -49,12 +57,6 @@ const ingredients: Ingredient[] = [
   { id: "cebolla", name: "Cebolla caramelizada", detail: "Lenta y dulce", price: 800, category: "extras", image: "/ingredients/cebolla-caramelizada.png" },
   { id: "tomate", name: "Tomate", detail: "Fresco, corte grueso", price: 500, category: "extras", image: "/ingredients/tomates.png" },
   { id: "huevo", name: "Huevo frito", detail: "Yema cremosa", price: 900, category: "extras", image: "/ingredients/huevo-frito.png" },
-];
-
-const menu = [
-  { name: "La Ruddy", tag: "La más pedida", description: "Doble smash, cheddar, panceta, aros de cebolla y salsa Ruddy's.", price: 11900, image: "/brand/burger-hero.jpeg", position: "50% 64%" },
-  { name: "Bacon Melt", tag: "Bien cargada", description: "Doble smash, cheddar fundido, panceta glaseada y barbacoa.", price: 10900, image: "/brand/burger-close.jpeg", position: "50% 60%" },
-  { name: "Crispy Simple", tag: "Un clásico", description: "Smash, cheddar, crispy onion y nuestra salsa especial.", price: 8700, image: "/brand/promo.jpeg", position: "66% 57%" },
 ];
 
 const defaults: Selection = {
@@ -159,7 +161,73 @@ async function composeBurger(canvas: HTMLCanvasElement, selection: Selection) {
   output.drawImage(offscreen, 0, sourceTop, 1024, sourceBottom - sourceTop, 40, 40, 944, 944);
 }
 
+// El placeholder de marca va siempre detrás. Si la foto existe, la tapa; si
+// falta, queda a la vista sin depender de que dispare ningún evento.
+function MenuPhoto({ item }: { item: MenuItem }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <>
+      <div className="menu-photo-missing" aria-hidden="true">
+        <span className="missing-mark">R</span>
+        <span className="missing-name">{item.name}</span>
+      </div>
+      {!failed && (
+        <img
+          className="menu-photo"
+          src={burgerPhoto(item.id)}
+          alt={`${item.name}: ${item.ingredients}`}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </>
+  );
+}
+
+function MenuCard({ item, index, onAdd }: { item: MenuItem; index: number; onAdd: (item: MenuItem) => void }) {
+  return (
+    <article className="menu-card">
+      <div className="menu-media">
+        <MenuPhoto item={item} />
+        <span className="menu-index">{String(index + 1).padStart(2, "0")}</span>
+        {item.badge && <span className="menu-tag">{item.badge}</span>}
+      </div>
+      <div className="menu-card-body">
+        <div>
+          <h3>{item.name}</h3>
+          <p>{item.ingredients}</p>
+        </div>
+        <div className="menu-card-footer">
+          <strong>{money(item.price)}</strong>
+          <button type="button" onClick={() => onAdd(item)}>
+            Sumar <span>+</span>
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function MenuRow({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem) => void }) {
+  return (
+    <article className="menu-row">
+      <div className="menu-row-copy">
+        <h3>
+          {item.name}
+          {item.badge && <em>{item.badge}</em>}
+        </h3>
+        {item.ingredients && <p>{item.ingredients}</p>}
+      </div>
+      <strong>{money(item.price)}</strong>
+      <button type="button" onClick={() => onAdd(item)} aria-label={`Sumar ${item.name}`}>
+        +
+      </button>
+    </article>
+  );
+}
+
 export default function Home() {
+  const [menuCategory, setMenuCategory] = useState<MenuCategoryId>("clasicas");
   const [activeCategory, setActiveCategory] = useState<CategoryId>("pan");
   const [selected, setSelected] = useState<Selection>(defaults);
   const [burgerName, setBurgerName] = useState("La Mía");
@@ -233,6 +301,18 @@ export default function Home() {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.total, 0);
 
+  const activeMenu = menuCategories.find((category) => category.id === menuCategory)!;
+  const visibleItems = menuItems.filter((item) => item.category === menuCategory);
+
+  const addMenuItem = (item: MenuItem) =>
+    addItem({
+      id: Date.now(),
+      name: item.name,
+      detail: item.ingredients,
+      total: item.price,
+      image: activeMenu.compact ? undefined : burgerPhoto(item.id),
+    });
+
   return <main>
     <header className="site-header">
       <a className="brand-lockup" href="#inicio" aria-label="Ruddy's, inicio"><span className="brand-script">Ruddy&apos;s</span><span className="brand-subtitle">SMASH BURGERS</span></a>
@@ -256,11 +336,15 @@ export default function Home() {
     <div className="ticker" aria-hidden="true"><div><span>CARNE REAL</span><b>✦</b><span>CHEDDAR FUNDIDO</span><b>✦</b><span>PAN BRIOCHE</span><b>✦</b><span>SIN VUELTAS</span><b>✦</b><span>CARNE REAL</span><b>✦</b><span>CHEDDAR FUNDIDO</span></div></div>
 
     <section className="menu-section" id="menu">
-      <div className="section-heading"><div><p className="eyebrow">LOS INFALTABLES</p><h2>Si no querés pensar,<br/><em>elegí una leyenda.</em></h2></div><p>Probadas, aprobadas y peligrosamente repetibles. Todas salen con papas.</p></div>
-      <div className="menu-grid">{menu.map((item, index) => <article className="menu-card" key={item.name}>
-        <div className="menu-image" style={{ backgroundImage: `url("${item.image}")`, backgroundPosition: item.position }}><span className="menu-index">0{index + 1}</span><span className="menu-tag">{item.tag}</span></div>
-        <div className="menu-card-body"><div><h3>{item.name}</h3><p>{item.description}</p></div><div className="menu-card-footer"><strong>{money(item.price)}</strong><button type="button" onClick={() => addItem({ id: Date.now(), name: item.name, detail: item.description, total: item.price, image: item.image })}>Sumar <span>+</span></button></div></div>
-      </article>)}</div>
+      <div className="section-heading"><div><p className="eyebrow">LOS INFALTABLES</p><h2>Si no querés pensar,<br/><em>elegí una leyenda.</em></h2></div><p>Probadas, aprobadas y peligrosamente repetibles. Todas las hamburguesas salen con papas.</p></div>
+
+      <div className="menu-tabs" role="tablist" aria-label="Categorías del menú">{menuCategories.map((category) => <button key={category.id} type="button" role="tab" aria-selected={menuCategory === category.id} className={menuCategory === category.id ? "active" : ""} onClick={() => setMenuCategory(category.id)}><span>{category.eyebrow}</span>{category.label}</button>)}</div>
+
+      <p className="menu-note">{activeMenu.note}</p>
+
+      {activeMenu.compact
+        ? <div className="menu-list">{visibleItems.map((item) => <MenuRow key={item.id} item={item} onAdd={addMenuItem}/>)}</div>
+        : <div className="menu-grid">{visibleItems.map((item, index) => <MenuCard key={item.id} item={item} index={index} onAdd={addMenuItem}/>)}</div>}
     </section>
 
     <section className="builder-section" id="crear">
@@ -293,7 +377,17 @@ export default function Home() {
       </div>
     </section>
 
-    <section className="local-section" id="local"><div className="local-photo"><div className="local-logo">R</div></div><div className="local-copy"><p className="eyebrow">RUDDY&apos;S BARRIO NORTE</p><h2>Una burger sin<br/><em>hacerse la difícil.</em></h2><p>Buen producto, fuego fuerte y cero poses. Pasá a buscarla o pedila desde donde estés.</p><div className="local-info"><div><span>DÓNDE</span><strong>Tucumán · Barrio Norte</strong></div><div><span>CUÁNDO</span><strong>Lun a dom · 19:30 a 00:30</strong></div></div><a className="button button-primary" href="https://wa.me/" target="_blank" rel="noreferrer">Hablar por WhatsApp <span>↗</span></a></div></section>
+    <section className="local-section" id="local">
+      <div className="local-photo"><div className="local-logo">R</div></div>
+      <div className="local-copy">
+        <p className="eyebrow">RUDDY&apos;S TUCUMÁN</p>
+        <h2>Siempre hay Ruddy&apos;s<br/><em>cerca tuyo.</em></h2>
+        <p>Buen producto, fuego fuerte y cero poses. Pasá a buscarla por cualquiera de nuestros locales o pedila desde donde estés.</p>
+        <ul className="local-branches">{locations.map((place) => <li key={place.address}><strong>{place.address}</strong><span>{place.area}</span></li>)}</ul>
+        <div className="local-info"><div><span>CUÁNDO</span><strong>Lun a dom · 19:30 a 00:30</strong></div><div><span>LOCALES</span><strong>{locations.length} en Tucumán y Yerba Buena</strong></div></div>
+        <a className="button button-primary" href="https://wa.me/" target="_blank" rel="noreferrer">Hablar por WhatsApp <span>↗</span></a>
+      </div>
+    </section>
     <footer><div className="footer-brand">Ruddy&apos;s</div><p>SMASH BURGERS · TUCUMÁN</p><div><a href="#menu">Menú</a><a href="#crear">Creá la tuya</a><a href="#inicio">Volver arriba ↑</a></div></footer>
 
     <div className={`cart-overlay ${cartOpen ? "open" : ""}`} onClick={() => setCartOpen(false)}/><aside className={`cart-drawer ${cartOpen ? "open" : ""}`} aria-hidden={!cartOpen}>
