@@ -354,6 +354,13 @@ export const drinks: Drink[] = [
 
 export const burgerPhoto = (id: string) => `/burgers/${id}.jpg`;
 
+// Chatbot de pedidos por WhatsApp. Formato internacional sin "+" ni espacios,
+// por ejemplo "5493811234567".
+//
+// PENDIENTE: cargar el número real. Mientras esté vacío, el checkout muestra el
+// mensaje del pedido para copiar en lugar de abrir WhatsApp.
+export const WHATSAPP_ORDERS = "";
+
 // Locales de Ruddy's.
 export const locations: { address: string; area: string }[] = [
   { address: "Santa Fe 277", area: "Barrio Norte" },

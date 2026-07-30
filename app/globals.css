@@ -140,6 +140,46 @@ img.missing-mark{background:transparent;border-radius:0;height:78px;object-fit:c
 .checkout-head span{color:var(--yellow);display:block;font-size:8px;font-weight:900;letter-spacing:.16em}
 .checkout-head h2{font-family:Impact,"Arial Narrow",sans-serif;font-size:36px;line-height:.95;margin:8px 0 0;text-transform:uppercase}
 .checkout-head button{background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:50%;color:#fff;flex:0 0 auto;font-size:24px;height:38px;width:38px}
+.checkout-steps{background:#fff;border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);list-style:none;margin:0;padding:0}
+.checkout-steps li{border-right:1px solid var(--line)}
+.checkout-steps li:last-child{border-right:0}
+.checkout-steps button{align-items:center;background:transparent;border:0;color:rgba(10,28,55,.42);display:flex;font-size:9px;font-weight:900;gap:9px;justify-content:center;letter-spacing:.08em;padding:14px 6px;text-transform:uppercase;width:100%}
+.checkout-steps button:disabled{opacity:.4}
+.checkout-steps button span{align-items:center;background:rgba(6,31,79,.09);border-radius:50%;display:flex;font-size:10px;height:22px;justify-content:center;width:22px}
+.checkout-steps li.past button{color:rgba(10,28,55,.6)}
+.checkout-steps li.past button span{background:var(--navy);color:#fff}
+.checkout-steps li.on button{color:var(--navy)}
+.checkout-steps li.on button span{background:var(--yellow)}
+.step-lead{color:rgba(10,28,55,.6);font-family:Georgia,serif;font-size:14px;line-height:1.5;margin:0 0 16px}
+.branch-list{display:grid;gap:8px}
+.branch-option{align-items:center;background:#fff;border:2px solid transparent;box-shadow:3px 3px 0 rgba(6,31,79,.07);color:var(--ink);display:grid;gap:13px;grid-template-columns:20px 1fr;padding:14px 15px;text-align:left;transition:.14s}
+.branch-option:hover{transform:translateX(2px)}
+.branch-option.on{border-color:var(--yellow)}
+.branch-option span:last-child{display:flex;flex-direction:column;gap:3px}
+.branch-option strong{font-family:Impact,"Arial Narrow",sans-serif;font-size:18px;letter-spacing:.01em;text-transform:uppercase}
+.branch-option small{color:rgba(10,28,55,.5);font-size:9px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.branch-option.on .pay-radio{background:radial-gradient(circle,var(--navy) 0 4px,#fff 5px);border-color:var(--navy)}
+
+/* Autocompletado de dirección */
+.address-search{position:relative}
+.address-status{color:rgba(10,28,55,.55);font-size:11px;margin:2px 0 0}
+.address-error{color:#a3230f}
+.address-hint{color:rgba(10,28,55,.45);font-size:10px;margin:10px 0 0}
+.address-results{background:#fff;border:1px solid var(--line);box-shadow:5px 5px 0 rgba(6,31,79,.09);list-style:none;margin:4px 0 0;max-height:250px;overflow-y:auto;padding:0}
+.address-results button{background:transparent;border:0;color:var(--ink);display:flex;flex-direction:column;gap:3px;padding:11px 14px;text-align:left;width:100%}
+.address-results button.on{background:rgba(255,189,36,.22)}
+.address-results strong{font-size:13px}
+.address-results small{color:rgba(10,28,55,.55);font-family:Georgia,serif;font-size:11px}
+.address-chosen{align-items:center;background:#fff;border:2px solid var(--yellow);box-shadow:3px 3px 0 rgba(6,31,79,.07);display:grid;gap:12px;grid-template-columns:24px 1fr auto;padding:14px 15px}
+.address-pin{font-size:17px}
+.address-text{display:flex;flex-direction:column;gap:3px}
+.address-text strong{font-size:14px}
+.address-text small{color:rgba(10,28,55,.55);font-family:Georgia,serif;font-size:11px}
+.address-chosen>button{background:transparent;border:0;border-bottom:2px solid var(--navy);color:var(--navy);font-size:9px;font-weight:900;letter-spacing:.06em;padding:5px 0;text-transform:uppercase}
+.done-message{background:var(--navy);color:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;line-height:1.55;margin:14px 0 0;max-height:230px;overflow:auto;padding:16px;text-align:left;white-space:pre-wrap;width:100%}
+.done-note a{border-bottom:2px solid var(--navy);font-weight:800}
+.done-note code{background:rgba(6,31,79,.1);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:2px 5px}
+
 .checkout-body{flex:1;overflow-y:auto;padding:24px 30px}
 .checkout-block{border-bottom:1px solid var(--line);margin-bottom:22px;padding-bottom:22px}
 .checkout-block:last-child{border-bottom:0;margin-bottom:0;padding-bottom:0}
