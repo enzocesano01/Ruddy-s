@@ -85,6 +85,43 @@ or enforce explicit server-side membership or allowlist checks.
 Use SIWC for account pages, user-specific dashboards, saved records, and write
 actions tied to the current ChatGPT user. Leave public content anonymous.
 
+## Circuito de pedido
+
+1. Elegís una hamburguesa del menú.
+2. Se abre el paso de **extras** (los siete de la carta) y **bebida** (Pepsi,
+   Mirinda, 7up o agua Villavicencio, una sola).
+3. El carrito lleva a un checkout de tres pasos: **sucursal** → **dirección** →
+   **pago y datos**.
+4. "Finalizar pedido" arma un mensaje estándar con todo el pedido y lo manda al
+   chatbot de WhatsApp, que confirma y —si el pago es con tarjeta o
+   transferencia— responde con el link o el CBU.
+
+No hay pasarela de pago en el sitio: el cobro lo resuelve el chatbot.
+
+### Lo que falta cargar
+
+- **`WHATSAPP_ORDERS`** en `app/menu-data.ts`: el número del chatbot, en formato
+  internacional sin `+` (ej. `5493811234567`). Mientras esté vacío, el checkout
+  muestra el mensaje en pantalla para copiarlo a mano en lugar de abrir WhatsApp.
+- **`DELIVERY_FEE`** en `app/page.tsx`: hoy es un monto fijo.
+- Del lado del chatbot, entender el formato del mensaje (`buildMessage()` en
+  `app/page.tsx`) para parsear el pedido y la referencia `RD-XXXXXX`.
+
+### Autocompletado de direcciones
+
+`app/api/direcciones/route.ts` hace de proxy a [Photon](https://photon.komoot.io),
+un geocodificador abierto sobre OpenStreetMap: sin API key ni costo. Está
+acotado a Tucumán y sólo se puede avanzar eligiendo una opción de la lista, no
+con texto libre, para que la dirección del pedido siempre exista.
+
+Dos particularidades de Photon resueltas ahí: no interpola alturas (busca la
+calle y le vuelve a pegar el número), y su índice de esta zona falla con
+diacríticos (se consulta también la variante sin acentos, por eso "Muñecas 800"
+encuentra resultados).
+
+Para pasar a Google Places sólo cambia ese archivo: el contrato con el cliente
+(`{ suggestions: [{ id, label, detail, lat, lon }] }`) queda igual.
+
 ## Useful Commands
 
 - `npm run dev`: start local development

@@ -9,9 +9,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const origin = `${protocol}://${host}`;
   return {
     metadataBase: new URL(origin),
-    title: "Ruddy's — Smash Burgers",
+    title: "Ruddy's — Hamburguesas",
     description: "Armá tu hamburguesa capa por capa o elegí una de las favoritas de Ruddy's.",
-    icons: { icon: "/brand/mark-r.jpeg", shortcut: "/brand/mark-r.jpeg" },
+    icons: { icon: "/brand/logo-mark.png", shortcut: "/brand/logo-mark.png", apple: "/brand/logo-mark.png" },
     openGraph: {
       title: "Ruddy's — Tu burger, a tu manera",
       description: "Ingredientes reales, precio en vivo y una burger hecha por vos.",
