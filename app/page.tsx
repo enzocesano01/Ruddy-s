@@ -559,7 +559,10 @@ export default function Home() {
         <div className="hero-proof"><div className="proof-faces" aria-hidden="true"><img src="/brand/logo-mark.png" alt=""/><img src="/brand/logo-mark.png" alt=""/><img src="/brand/logo-mark.png" alt=""/></div><p><strong>4,9</strong> en reseñas locales<br/><span>Hechas al momento, siempre.</span></p></div>
       </div>
       <div className="hero-visual" aria-label="Hamburguesa Ruddy's con doble carne, cheddar y panceta">
-        <div className="hero-image"/><div className="hero-stamp"><span>100%</span><strong>CARNE</strong><small>HECHO AL MOMENTO</small></div><p className="hero-caption">DOBLE RUDDY · LA FAVORITA</p>
+        <video className="hero-video" autoPlay muted loop playsInline preload="metadata" poster="/brand/burger-hero.jpeg" aria-hidden="true" tabIndex={-1}>
+          <source src="/videoportada.mp4" type="video/mp4"/>
+        </video>
+        <div className="hero-stamp"><span>100%</span><strong>CARNE</strong><small>HECHO AL MOMENTO</small></div><p className="hero-caption">DOBLE RUDDY · LA FAVORITA</p>
       </div>
     </section>
 

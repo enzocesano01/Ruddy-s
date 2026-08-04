@@ -39,6 +39,26 @@
 
 .builder-progress{grid-template-columns:repeat(4,1fr)}
 
+/* Video integrado a todo el ancho de la hero */
+.hero{color:#fff;display:block;isolation:isolate;min-height:calc(100svh - 84px);position:relative}
+.hero-copy{min-height:calc(100svh - 84px);max-width:760px;padding-bottom:9vw;padding-top:9vw;position:relative;z-index:2}
+.hero-visual{background:var(--navy);inset:0;min-height:0;position:absolute;z-index:0}
+.hero-video{height:100%;inset:0;object-fit:cover;position:absolute;width:100%;z-index:0}
+.hero-visual:before{background:linear-gradient(90deg,rgba(3,16,41,.9) 0%,rgba(3,16,41,.62) 43%,rgba(3,16,41,.1) 76%),linear-gradient(0deg,rgba(3,16,41,.58),transparent 42%);pointer-events:none;z-index:1}
+.hero-stamp{left:auto;right:7%;z-index:2}
+.hero-caption{z-index:2}
+.hero .hero-description{color:rgba(255,255,255,.9)}
+.hero .button-primary{background:var(--yellow);box-shadow:5px 5px 0 #fff;color:var(--navy)}
+.hero .text-link{border-color:#fff}
+@media(max-width:760px){
+  .hero{min-height:calc(100svh - 70px)}
+  .hero-copy{min-height:calc(100svh - 70px);padding:74px 24px 92px}
+  .hero-visual{min-height:0}
+  .hero-visual:before{background:linear-gradient(90deg,rgba(3,16,41,.82),rgba(3,16,41,.28)),linear-gradient(0deg,rgba(3,16,41,.76),transparent 58%)}
+  .hero-stamp{display:none}
+}
+@media(prefers-reduced-motion:reduce){.hero-video{display:none}.hero-visual{background-image:url("/brand/burger-hero.jpeg");background-position:center 65%;background-size:cover}}
+
 /* ── Menú por categorías ─────────────────────────────────────────────────── */
 .menu-tabs{border-bottom:1px solid var(--line);display:flex;gap:34px;margin:0 auto 22px;max-width:1320px;overflow-x:auto;scrollbar-width:none}
 .menu-tabs::-webkit-scrollbar{display:none}
