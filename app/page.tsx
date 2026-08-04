@@ -240,21 +240,7 @@ export default function Home() {
       <button className="cart-trigger" type="button" onClick={() => setCartOpen(true)} aria-label={`Abrir pedido, ${cart.length} productos`}>Mi pedido <span>{cart.length}</span></button>
     </header>
 
-    <section className="hero hero-video-cover" id="inicio">
-      <video
-        className="hero-cover-video"
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        poster="/brand/burger-hero.jpeg"
-        aria-hidden="true"
-        tabIndex={-1}
-      >
-        <source src="/videoportada.mp4" type="video/mp4"/>
-      </video>
-      <div className="hero-video-shade" aria-hidden="true"/>
+    <section className="hero" id="inicio">
       <div className="hero-copy">
         <p className="eyebrow">SMASHED EN TUCUMÁN · DESDE 2020</p>
         <h1>Tu antojo.<br/><em>Tus reglas.</em></h1>
@@ -262,7 +248,9 @@ export default function Home() {
         <div className="hero-actions"><a className="button button-primary" href="#crear">Armá tu burger <span>↓</span></a><a className="text-link" href="#menu">Ver el menú <span>↗</span></a></div>
         <div className="hero-proof"><div className="proof-faces" aria-hidden="true"><span>R</span><span>R</span><span>R</span></div><p><strong>4,9</strong> en reseñas locales<br/><span>Hechas al momento, siempre.</span></p></div>
       </div>
-      <a className="hero-scroll" href="#menu" aria-label="Continuar hacia el menú"><span>Descubrí Ruddy&apos;s</span><b>↓</b></a>
+      <div className="hero-visual" aria-label="Hamburguesa Ruddy's con doble carne, cheddar y panceta">
+        <div className="hero-image"/><div className="hero-stamp"><span>100%</span><strong>SMASH</strong><small>HECHO AL MOMENTO</small></div><p className="hero-caption">DOBLE RUDDY · LA FAVORITA</p>
+      </div>
     </section>
 
     <div className="ticker" aria-hidden="true"><div><span>CARNE REAL</span><b>✦</b><span>CHEDDAR FUNDIDO</span><b>✦</b><span>PAN BRIOCHE</span><b>✦</b><span>SIN VUELTAS</span><b>✦</b><span>CARNE REAL</span><b>✦</b><span>CHEDDAR FUNDIDO</span></div></div>
